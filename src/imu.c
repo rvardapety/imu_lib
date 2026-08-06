@@ -53,7 +53,7 @@ bool imu_get_accel_data (accel_value_t *accel) {
 }
 
 bool imu_get_gyro_data (gyro_value_t *gyro) {
-        char reg[1] = {GYRO_OUT_X_H};
+        char reg[1] = {ACCEL_OUT_X_H};
 
         if (write(file, reg, 1) < 0) {
             return false;
