@@ -14,6 +14,7 @@
 #define ACCEL_OUT_X_H 0x3B
 
 int file;
+char buffer[14];
 char *filename = "/dev/i2c-1";
 
 typedef struct {
@@ -54,7 +55,6 @@ bool imu_get_accel_data (accel_value_t *accel) {
             return false;
         }
 
-        char buffer[6];
         if (read(file, buffer, 6) == 6) {
             accel->accel_x = (buffer[0] << 8) | buffer[1];
             accel->accel_y = (buffer[2] << 8) | buffer[3];
@@ -72,7 +72,6 @@ bool imu_get_gyro_data (gyro_value_t *gyro) {
             return false;
         }
 
-        char buffer[6];
         if (read(file, buffer, 6) == 6) {
             gyro->gyro_x = (buffer[8] << 8) | buffer[9];
             gyro->gyro_y = (buffer[10] << 8) | buffer[11];
