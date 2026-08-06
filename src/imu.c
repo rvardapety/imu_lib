@@ -1,6 +1,5 @@
-#include <stdio.h>
+#include "imu.h"
 #include <fcntl.h>
-#include <stdint.h>
 #include <unistd.h>
 #include <stdbool.h>
 #include <sys/ioctl.h>
@@ -16,18 +15,6 @@
 int file;
 char buffer[14];
 char *filename = "/dev/i2c-1";
-
-typedef struct {
-    int16_t accel_x;
-    int16_t accel_y;
-    int16_t accel_z;
-} accel_value_t ;
-
-typedef struct {
-    int16_t gyro_x;
-    int16_t gyro_y;
-    int16_t gyro_z;
-} gyro_value_t;
 
 bool imu_i2c_init(void) {
 
@@ -66,13 +53,13 @@ bool imu_get_accel_data (accel_value_t *accel) {
 }
 
 bool imu_get_gyro_data (gyro_value_t *gyro) {
-        char reg[1] = {ACCEL_OUT_X_H};
+        char reg[1] = {GYRO_OUT_X_H};
 
         if (write(file, reg, 1) < 0) {
             return false;
         }
 
-        if (read(file, buffer, 6) == 6) {
+        if (read(file, buffer, 14) == 14) {
             gyro->gyro_x = (buffer[8] << 8) | buffer[9];
             gyro->gyro_y = (buffer[10] << 8) | buffer[11];
             gyro->gyro_z = (buffer[12] << 8) | buffer[13];
