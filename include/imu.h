@@ -5,15 +5,15 @@
 #include <stdbool.h>
 
 typedef struct {
-    int16_t accel_x;
-    int16_t accel_y;
-    int16_t accel_z;
+    float accel_x;
+    float accel_y;
+    float accel_z;
 } accel_value_t ;
 
 typedef struct {
-    int16_t gyro_x;
-    int16_t gyro_y;
-    int16_t gyro_z;
+    float gyro_x;
+    float gyro_y;
+    float gyro_z;
 } gyro_value_t;
 
 bool imu_i2c_init(void);
