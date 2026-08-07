@@ -62,11 +62,11 @@ bool imu_get_accel_data (accel_value_t *accel) {
         }
 
         if (read(file, buffer, 6) == 6) {
-            uint16_t accel_raw_data_x = (buffer[0] << 8) | buffer[1];
+            int16_t accel_raw_data_x = (buffer[0] << 8) | buffer[1];
             accel->accel_x = accel_raw_data_x / ACCEL_SCALE_FACTOR;
-            uint16_t accel_raw_data_y = (buffer[2] << 8) | buffer[3];
+            int16_t accel_raw_data_y = (buffer[2] << 8) | buffer[3];
             accel->accel_y = accel_raw_data_y / ACCEL_SCALE_FACTOR;
-            uint16_t accel_raw_data_z = (buffer[4] << 8) | buffer[5];
+            int16_t accel_raw_data_z = (buffer[4] << 8) | buffer[5];
             accel->accel_z = accel_raw_data_z / ACCEL_SCALE_FACTOR;
 
             return true;
@@ -82,11 +82,11 @@ bool imu_get_gyro_data (gyro_value_t *gyro) {
         }
 
         if (read(file, buffer, 14) == 14) {
-            uint16_t gyro_raw_data_x = (buffer[8] << 8) | buffer[9];
+            int16_t gyro_raw_data_x = (buffer[8] << 8) | buffer[9];
             gyro->gyro_x = gyro_raw_data_x / GYRO_SCALE_FACTOR;
-            uint16_t gyro_raw_data_y = (buffer[10] << 8) | buffer[11];
+            int16_t gyro_raw_data_y = (buffer[10] << 8) | buffer[11];
             gyro->gyro_y = gyro_raw_data_y / GYRO_SCALE_FACTOR;
-            uint16_t gyro_raw_data_z = (buffer[12] << 8) | buffer[13];
+            int16_t gyro_raw_data_z = (buffer[12] << 8) | buffer[13];
             gyro->gyro_z = gyro_raw_data_z / GYRO_SCALE_FACTOR;
 
             return true;
