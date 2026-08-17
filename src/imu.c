@@ -15,7 +15,7 @@
 #define GYRO_CONFIG   0x1B
 #define ACCEL_CONFIG  0x1C
 
-#define PI 3.14159265358979323846f
+#define DEG_TO_RAD 0.017453292519943295f
 #define GYRO_SCALE_FACTOR   131.0f    // LSB/(°/s)
 #define ACCEL_SCALE_FACTOR  16384.0f  // LSB/g
 
@@ -85,11 +85,11 @@ bool imu_get_gyro_data (gyro_value_t *gyro) {
 
         if (read(file, buffer, 14) == 14) {
             int16_t gyro_raw_data_x = (buffer[8] << 8) | buffer[9];
-            gyro->gyro_x = (gyro_raw_data_x / GYRO_SCALE_FACTOR) * (PI / 180.0);
+            gyro->gyro_x = (gyro_raw_data_x / GYRO_SCALE_FACTOR) * DEG_TO_RAD;
             int16_t gyro_raw_data_y = (buffer[10] << 8) | buffer[11];
-            gyro->gyro_y = (gyro_raw_data_y / GYRO_SCALE_FACTOR) * (PI / 180.0);
+            gyro->gyro_y = (gyro_raw_data_y / GYRO_SCALE_FACTOR) * DEG_TO_RAD;
             int16_t gyro_raw_data_z = (buffer[12] << 8) | buffer[13];
-            gyro->gyro_z = (gyro_raw_data_z / GYRO_SCALE_FACTOR) * (PI / 180.0);
+            gyro->gyro_z = (gyro_raw_data_z / GYRO_SCALE_FACTOR) * DEG_TO_RAD;
 
             return true;
         }
