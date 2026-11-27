@@ -21,4 +21,7 @@ bool imu_i2c_deinit (void);
 bool imu_get_gyro_data (gyro_value_t *gyro);
 bool imu_get_accel_data (accel_value_t *accel);
 
+// Reads accelerometer and gyroscope in one I2C transaction (same sample instant)
+bool imu_get_data (accel_value_t *accel, gyro_value_t *gyro);
+
 #endif //IMU_LIB_IMU_H

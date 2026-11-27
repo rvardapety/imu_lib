@@ -19,9 +19,44 @@
 #define GYRO_SCALE_FACTOR   131.0f    // LSB/(°/s)
 #define ACCEL_SCALE_FACTOR  16384.0f  // LSB/g
 
-int file;
-char buffer[14];
-char *filename = "/dev/i2c-1";
+// Register block starting at ACCEL_OUT_X_H: accel X/Y/Z (0-5), temperature (6-7), gyro X/Y/Z (8-13)
+#define SENSOR_BLOCK_LENGTH 14
+
+static int file = -1;
+static uint8_t buffer[SENSOR_BLOCK_LENGTH];
+static const char *filename = "/dev/i2c-1";
+
+// Big-endian register pair -> signed 16-bit value (independent of whether char is signed)
+static int16_t to_int16(const uint8_t *bytes)
+{
+    return (int16_t)(((uint16_t)bytes[0] << 8) | (uint16_t)bytes[1]);
+}
+
+static void parse_accel(const uint8_t *block, accel_value_t *accel)
+{
+    accel->accel_x = to_int16(&block[0]) / ACCEL_SCALE_FACTOR;
+    accel->accel_y = to_int16(&block[2]) / ACCEL_SCALE_FACTOR;
+    accel->accel_z = to_int16(&block[4]) / ACCEL_SCALE_FACTOR;
+}
+
+static void parse_gyro(const uint8_t *block, gyro_value_t *gyro)
+{
+    gyro->gyro_x = (to_int16(&block[8]) / GYRO_SCALE_FACTOR) * DEG_TO_RAD;
+    gyro->gyro_y = (to_int16(&block[10]) / GYRO_SCALE_FACTOR) * DEG_TO_RAD;
+    gyro->gyro_z = (to_int16(&block[12]) / GYRO_SCALE_FACTOR) * DEG_TO_RAD;
+}
+
+// Reads 'length' bytes starting at ACCEL_OUT_X_H into buffer
+static bool read_sensor_block(int length)
+{
+    uint8_t reg[1] = {ACCEL_OUT_X_H};
+
+    if (write(file, reg, 1) < 0) {
+        return false;
+    }
+
+    return read(file, buffer, (size_t)length) == length;
+}
 
 bool imu_i2c_init(void) {
 
@@ -33,20 +68,20 @@ bool imu_i2c_init(void) {
         return false;
     }
 
-    char config[2] = {PWR_MGMT_1, AWAKE_MODE};
+    uint8_t config[2] = {PWR_MGMT_1, AWAKE_MODE};
     if (write(file, config, 2) < 0) {
         return false;
     }
 
     // Accelerometer: ±2 g
-    char accel_config[2] = {ACCEL_CONFIG, 0x00};
+    uint8_t accel_config[2] = {ACCEL_CONFIG, 0x00};
 
     if (write(file, accel_config, 2) < 0) {
         return false;
     }
 
     // Gyroscope: ±250 degrees/second
-    char gyro_config[2] = {GYRO_CONFIG, 0x00};
+    uint8_t gyro_config[2] = {GYRO_CONFIG, 0x00};
 
     if (write(file, gyro_config, 2) < 0) {
         return false;
@@ -56,53 +91,43 @@ bool imu_i2c_init(void) {
 }
 
 bool imu_get_accel_data (accel_value_t *accel) {
+    if (!read_sensor_block(6)) {
+        return false;
+    }
 
-        char reg[1] = {ACCEL_OUT_X_H};
-
-        if (write(file, reg, 1) < 0) {
-            return false;
-        }
-
-        if (read(file, buffer, 6) == 6) {
-            int16_t accel_raw_data_x = (buffer[0] << 8) | buffer[1];
-            accel->accel_x = accel_raw_data_x / ACCEL_SCALE_FACTOR;
-            int16_t accel_raw_data_y = (buffer[2] << 8) | buffer[3];
-            accel->accel_y = accel_raw_data_y / ACCEL_SCALE_FACTOR;
-            int16_t accel_raw_data_z = (buffer[4] << 8) | buffer[5];
-            accel->accel_z = accel_raw_data_z / ACCEL_SCALE_FACTOR;
-
-            return true;
-        }
-    return false;
+    parse_accel(buffer, accel);
+    return true;
 }
 
 bool imu_get_gyro_data (gyro_value_t *gyro) {
-        char reg[1] = {ACCEL_OUT_X_H};
+    if (!read_sensor_block(SENSOR_BLOCK_LENGTH)) {
+        return false;
+    }
 
-        if (write(file, reg, 1) < 0) {
-            return false;
-        }
+    parse_gyro(buffer, gyro);
+    return true;
+}
 
-        if (read(file, buffer, 14) == 14) {
-            int16_t gyro_raw_data_x = (buffer[8] << 8) | buffer[9];
-            gyro->gyro_x = (gyro_raw_data_x / GYRO_SCALE_FACTOR) * DEG_TO_RAD;
-            int16_t gyro_raw_data_y = (buffer[10] << 8) | buffer[11];
-            gyro->gyro_y = (gyro_raw_data_y / GYRO_SCALE_FACTOR) * DEG_TO_RAD;
-            int16_t gyro_raw_data_z = (buffer[12] << 8) | buffer[13];
-            gyro->gyro_z = (gyro_raw_data_z / GYRO_SCALE_FACTOR) * DEG_TO_RAD;
+bool imu_get_data (accel_value_t *accel, gyro_value_t *gyro) {
+    // One I2C transaction, so accel and gyro come from the same sample
+    if (!read_sensor_block(SENSOR_BLOCK_LENGTH)) {
+        return false;
+    }
 
-            return true;
-        }
-    return false;
+    parse_accel(buffer, accel);
+    parse_gyro(buffer, gyro);
+    return true;
 }
 
 bool imu_i2c_deinit (void) {
-    if (file >= 0) {
-        char imu_sleep_mode[2] = {PWR_MGMT_1, SLEEP_MODE};
-        if (write(file, imu_sleep_mode, 2) < 0) {
-            return false;
-        }
+    if (file < 0) {
+        return true;
     }
+
+    uint8_t imu_sleep_mode[2] = {PWR_MGMT_1, SLEEP_MODE};
+    bool ok = write(file, imu_sleep_mode, 2) >= 0;
+
     close(file);
-    return true;
+    file = -1;
+    return ok;
 }
